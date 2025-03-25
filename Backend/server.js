@@ -4,7 +4,7 @@ const authRoutes = require('./routes/auth');
 const placeRoutes = require("./routes/placeRoutes");
 const messageroutes = require("./routes/messageroutes");
 const commentRoutes = require("./routes/commentRoutes");
-const ratingRoutes = require("./routes/ratingRoutes");
+const ratingRoutes = require('./routes/ratingRoutes');
 // const profileRoutes = require("./routers/profileRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const cookieParser = require('cookie-parser');
@@ -49,9 +49,8 @@ connectDB();
 app.use("/api/auth", authRoutes);
 app.use("/places", placeRoutes);
 app.use("/api", messageroutes);
-
-app.use("/comments", commentRoutes);
-app.use("/ratings", ratingRoutes);
+// app.use("/comments", commentRoutes);
+app.use('/api/ratings', ratingRoutes);
 // app.use("/api/profile", profileRoutes);
 app.use("/api", paymentRoutes);
 

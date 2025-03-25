@@ -2,44 +2,54 @@ import {Link} from "react-router-dom"
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import React, { useState, useEffect } from "react";
-
+import RatingPlace from "../../components/RatingPlace"
 
 
 
 
 const PlaceDetails = () => {
   const [museums, setMuseums] = useState([]);
-  const [selectedMuseum, setSelectedMuseum] = useState(null)
+  const [selectedMuseum, setSelectedMuseum] = useState(null);
   const { id } = useParams(); // استخراج ID من الـ URL
   const [place, setPlace] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [relatedPlaces, setRelatedPlaces] = useState([]); // إضافة حالة للأماكن المرتبطة
   
-  useEffect(() => {
-    fetch("http://localhost:9527/places/category/متاحف")
-      .then((response) => response.json())
-      .then((data) => setMuseums(data.slice(0,6))) // تحديث الحالة بالبيانات المسترجعة
-      .catch((error) => console.error("❌ Error fetching museums:", error));
-  }, []);
+ // ✅ جلب بيانات المكان حسب ID
+ useEffect(() => {
+  const fetchPlaceDetails = async () => {
+    try {
+      console.log("🔍 Fetching from:", `http://localhost:9527/places/${id}`);
+      const response = await axios.get(`http://localhost:9527/places/${id}`);
+      console.log("✅ Data received:", response.data);
+      setPlace(response.data);
+    } catch (err) {
+      console.error("❌ Error fetching place details:", err.response?.data || err.message);
+      setError("حدث خطأ أثناء جلب البيانات.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  fetchPlaceDetails();
+}, [id]);
 
-  useEffect(() => {
-    const fetchPlaceDetails = async () => {
-      try {
-        console.log("🔍 Fetching from:", `http://localhost:9527/places/${id}`);
-        const response = await axios.get(`http://localhost:9527/places/${id}`);
-        console.log("✅ Data received:", response.data);
-        setPlace(response.data);
-        setLoading(false); // تحديث حالة التحميل هنا
-      } catch (err) {
-        console.error("❌ Error fetching place details:", err.response?.data || err.message);
-        setError("حدث خطأ أثناء جلب البيانات.");
-        setLoading(false); // تحديث حالة التحميل هنا حتى في حالة الخطأ
-      }
-    };
-  
-    fetchPlaceDetails();
-  }, [id]);
+// ✅ جلب الأماكن المرتبطة بالفئة بعد تحميل place
+// ✅ جلب الأماكن المرتبطة بالفئة بعد تحميل place
+useEffect(() => {
+  if (!place || !place.categories || place.categories.length === 0) return;
+
+  const category = encodeURIComponent(place.categories[0]); // استخدام أول فئة
+  console.log("🔍 Fetching related places for category:", category);
+
+  axios.get(`http://localhost:9527/places/category/${category}`)
+    .then((response) => {
+      console.log("✅ Related places data received:", response.data);
+      setRelatedPlaces(response.data.slice(0, 6)); // عرض أول 6 أماكن مشابهة
+    })
+    .catch((error) => console.error("❌ Error fetching related places:", error));
+}, [place]); // يتم تشغيله عند تحديث place
 
 
 
@@ -47,9 +57,13 @@ const PlaceDetails = () => {
   if (error) return <p>{error}</p>;
   if (!place) return <p>لم يتم العثور على المكان.</p>;
 
-
-
-
+  const handleClick = () => {
+    if (place.is_free) {
+      alert("لا يوجد حاجة لحجز تذاكر لهذا الموقع، يمكنك الذهاب مباشرة!");
+    } else {
+      navigate(`/pay/${place._id}`);
+    }
+  };
 
 
 
@@ -65,7 +79,7 @@ const PlaceDetails = () => {
           fontWeight: "bold",
           color: "#fff",
           fontFamily: "var(--font-family-titel)"
-        }}>المتاحف</h1>
+        }}>أماكن مشابهة</h1>
         <div className="search-favorite d-flex justify-content-between align-items-center mb-4" style={{ marginBottom: "20px" }}>
           <div className="search-bar" style={{ marginLeft: "auto" }}>
             <input
@@ -84,7 +98,8 @@ const PlaceDetails = () => {
           </div>
         </div>
         <div className="row" id="museumCards" style={{ justifyContent: "center", width: "100%", alignItems: "center" }}>
-          {museums.map((museum, index) => (
+        {relatedPlaces.length > 0 ? (
+        relatedPlaces.map((place, index) => (
             <div className="col-md-4 col-sm-6 mb-4" key={index}>
               <div className="product-card" style={{
                 background: "rgba(255, 255, 255, 0.9)",
@@ -106,26 +121,29 @@ const PlaceDetails = () => {
                   top: "10px",
                   left: "10px",
                   zIndex: 1
-                }}>{museum.season}</span>
+                }}>{place.season}</span>
 
                 <img
-                  src={museum.imageUrl}
-                  alt={museum.title}
+                  src={place.images
+                  }
+                  alt={place.name
+                  }
                   style={{ width: "100%", height: "150px", objectFit: "cover" }}
                 />
 
                 <div className="card-body" style={{ padding: "10px", textAlign: "center" }}>
                   <h3 className="card-title" style={{ fontSize: "1.3em", margin: "10px 0", color: "#333" }}>
-                    {museum.title}
+                    {place.name
+                    }
                   </h3>
                   <div style={{ color: "#666", margin: "5px 0", fontSize: "0.9em" }}>
                     📍 الموقع
                   </div>
                   <p className="card-text" style={{ color: "#666", margin: "5px 0", fontSize: "0.8em" }}>
-                    {museum.description}
+                    {place.description}
                   </p>
                   <div className="price" style={{ fontWeight: "bold", margin: "5px 0", color: "#e74c3c" }}>
-                    {museum.price}
+                    {place.price}
                   </div>
                 </div>
 
@@ -154,7 +172,10 @@ const PlaceDetails = () => {
                 </div>
               </div>
             </div>
-          ))}
+         ))
+        ) : (
+          <p className="text-white text-center">لا توجد أماكن مشابهة متاحة.</p>
+        )}
         </div>
       </div>
       <div style={{
@@ -165,7 +186,9 @@ const PlaceDetails = () => {
         height: "100%",
         backgroundColor: "rgba(0, 0, 0, 0.5)",
         zIndex: 1
-      }}></div>
+      }}>
+        
+      </div>
     </section>
 
 <style jsx>{`
@@ -315,7 +338,7 @@ const PlaceDetails = () => {
 {/* معرض السيارات */}
 <div className="container py-5">
   <h2 className="text-center mb-4" style={{ color: "#11374d", fontWeight: "bold" }}>
-    معرض السيارات
+     استمتع بمشاهدة مجموعة من الصور التي تسلط الضوء على جمال  {place.name}   
   </h2>
 
   {/* شبكة الصور من `gallery` */}
@@ -330,39 +353,54 @@ const PlaceDetails = () => {
   </div>
 </div>
 
-  {/* حول المكان */}
-  <div className="container mt-5">
-    <h1 style={{ color: "#11374d", textAlign: "center" }}>حول المكان</h1>
-    <div className="options text-center">
-    
-    <Link to="/CheckOut" className="option block text-center bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-200">
-  شراء التذكرة
-</Link>
-      <div className="option" data-info="الأماكن القريبة">
-        الأماكن القريبة
-      </div>
-      <div className="option" data-info="الفصل المناسب للزيارة">
-        أفضل وقت للزيارة
-      </div>
-      <div className="option" data-info="معلومات عن ملاعب">
-        ارفق مكان مماثل
-      </div>
-      <div className="option" data-info="معلومات عن مقاوم">
-        المزيد
-      </div>
+{/* حول المكان */}
+<div className="container mt-5">
+  <h1 style={{ color: "#11374d", textAlign: "center" }}>حول المكان</h1>
+
+  {/* خيارات المعلومات والحجز */}
+  <div className="options text-center grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+  <button 
+      onClick={handleClick} 
+      className="option block bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-200"
+    >
+      شراء التذكرة
+    </button>
+    <div className="option bg-gray-200 py-2 rounded-lg" data-info="الأماكن القريبة">
+      الأماكن القريبة
     </div>
-    <div className="rating-section text-center">
-      <h3>قيم الموقع:</h3>
-      <div className="star-rating">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <span className="star" key={star} data-value={star}>
-            ★
-          </span>
-        ))}
-      </div>
-      <div id="rating-result">لم تقيم بعد</div>
+    <div className="option bg-gray-200 py-2 rounded-lg" data-info="وسائل النقل">
+      وسائل النقل المتاحة
+    </div>
+    <div className="option bg-gray-200 py-2 rounded-lg no-underline cursor-pointer" data-info="الخريطة التفاعلية">
+      <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">
+        عرض الموقع على الخريطة
+      </a>
+    </div>
+    <div className="option bg-gray-200 py-2 rounded-lg" data-info="إقتراح أماكن مشابهة">
+      إقتراح أماكن مشابهة
     </div>
   </div>
+
+  {/* <div className="map-container mt-5">
+    <h3 className="text-center">الموقع على الخريطة:</h3>
+    <iframe
+      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3162.916163524317!2d-122.08424968469273!3d37.42199997982585!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMznCsDI1JzEwLjEiTiAxMjLCsDA1JzA0LjYiVw!5e0!3m2!1sen!2sjo!4v1617161586892!5m2!1sen!2sjo"
+      width="100%"
+      height="300"
+      allowFullScreen=""
+      loading="lazy"
+      className="rounded-lg shadow-lg"
+    ></iframe>
+  </div> */}
+
+  {/* قسم التقييم */}
+{/* قسم التقييم */}
+<div>
+      {/* معلومات المكان الأخرى */}
+      {place && <RatingPlace placeId={place._id} />}
+    </div>
+</div>
+
 
   {/* CSS داخلي */}
   <style jsx>{`

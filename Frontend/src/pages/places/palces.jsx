@@ -311,35 +311,39 @@ useEffect(() => {
     console.log("Username:", storedUsername);
 }, []);
 
-    const addToFavorites = (place) => {
-      if (!userId) {
-        alert("يرجى تسجيل الدخول لحفظ الأماكن في المفضلة.");
-        return;
-      }
+const addToFavorites = (place) => {
+  if (!userId) {
+    alert("يرجى تسجيل الدخول لحفظ الأماكن في المفضلة.");
+    return;
+  }
+
+  let userFavorites = JSON.parse(localStorage.getItem(`favorites_${userId}`)) || [];
+
+  if (!userFavorites.some(fav => fav._id === place._id)) {
+    userFavorites.push(place);
+    localStorage.setItem(`favorites_${userId}`, JSON.stringify(userFavorites));
     
-      let userFavorites = JSON.parse(localStorage.getItem(`favorites_${userId}`)) || [];
-    
-      if (!userFavorites.some(fav => fav._id === place._id)) {
-        userFavorites.push(place);
-        localStorage.setItem(`favorites_${userId}`, JSON.stringify(userFavorites));
-        alert(`${place.name} تم إضافته للمفضلة!`);
-      } else {
-        alert(`${place.name} موجود بالفعل في المفضلة.`);
-      }
-    };
-    
-    
+    // تحديث الحالة
+    setFavorites(userFavorites);
+
+    alert(`${place.name} تم إضافته للمفضلة!`);
+  } else {
+    alert(`${place.name} موجود بالفعل في المفضلة.`);
+  }
+};
+
+const removeFromFavorites = (place) => {
+  if (!userId) return;
+
+  let userFavorites = JSON.parse(localStorage.getItem(`favorites_${userId}`)) || [];
+  userFavorites = userFavorites.filter(fav => fav._id !== place._id);
+  localStorage.setItem(`favorites_${userId}`, JSON.stringify(userFavorites));
   
-    const removeFromFavorites = (place) => {
-      if (!userId) return;
-    
-      let userFavorites = JSON.parse(localStorage.getItem(`favorites_${userId}`)) || [];
-      userFavorites = userFavorites.filter(fav => fav._id !== place._id);
-      localStorage.setItem(`favorites_${userId}`, JSON.stringify(userFavorites));
-    
-      alert(`${place.name} تم إزالته من المفضلة.`);
-    };
-    
+  // تحديث الحالة
+  setFavorites(userFavorites);
+
+  alert(`${place.name} تم إزالته من المفضلة.`);
+};
     const [favorites, setFavorites] = useState([]);
 
 useEffect(() => {
@@ -686,22 +690,19 @@ const getDisplayedPlaces = () => {
               justifyContent: "center",
               gap: "20px",
             }}
-          >
-            {places.length > 0 ? (
-              places
-                .slice((currentPage - 1) * 6, currentPage * 6) // عرض 6 كروت في الصفحة
-                .map((place) => (
+            >
+              {getDisplayedPlaces().length > 0 ? (
+                getDisplayedPlaces().map((place) => (
                   <div
                     key={place._id}
                     style={{
                       width: "300px",
                       backgroundColor: "#FFFFFF",
-                      borderRadius: "15px",
-                      boxShadow: "0 8px 16px rgba(0,0,0,0.2)",
-                      padding: "0px",
+                      borderRadius: "10px",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                      padding: "15px",
                       textAlign: "center",
-                      transition: "transform 0.2s, box-shadow 0.2s",
-                      cursor: "pointer",
+                      transition: "transform 0.2s",
                     }}
                     onMouseEnter={(e) =>
                       (e.currentTarget.style.transform = "scale(1.05)")
@@ -710,95 +711,78 @@ const getDisplayedPlaces = () => {
                       (e.currentTarget.style.transform = "scale(1)")
                     }
                   >
-                     <img
-                    src={place.gallery[0]}
-                    alt={place.name}
-                    style={{
-                      marginBottom:"25px",
-
-                      width: "100%",
-                      height: "200px",
-                      borderRadius: "5px",
-                      objectFit: "cover",
-                    }}
-                  />
-                    <h3 style={{ color: "#115173", marginBottom: "10px" }}>
-                      {place.name}
-                    </h3>
-                    <p style={{ color: "#444444", marginBottom: "5px" }}>
-                      <strong>المدينة:</strong> {place.city}
+                    <img
+                      src={place.gallery[0]}
+                      alt={place.name}
+                      style={{
+                        width: "100%",
+                        height: "200px",
+                        borderRadius: "10px",
+                        objectFit: "cover",
+                      }}
+                    />
+                    <h3 style={{ color: "#115173" }}>{place.name}</h3>
+                    <p style={{ color: "#444444" }}>{place.short_description}</p>
+                    <p>
+                      <strong style={{ color: "#022C43" }}>التفاصيل:</strong>{" "}
+                      {place.detailed_description}
                     </p>
-                    <p style={{ color: "#444444", marginBottom: "5px" }}>
-                      <strong>الفصل المفضل:</strong> {place.best_season}
+                    <p>
+                      <strong style={{ color: "#022C43" }}>أفضل موسم:</strong>{" "}
+                      {place.best_season}
                     </p>
-                    <p style={{ color: "#444444", marginBottom: "15px" }}>
-                      <strong>التذاكر:</strong> {place.tickets}
+                    <p>
+                      <strong style={{ color: "#022C43" }}>المدينة:</strong>{" "}
+                      {place.city}
                     </p>
-
+                    <p>
+                      <strong style={{ color: "#022C43" }}>تواصل:</strong>{" "}
+                      {place.contact?.phone}
+                    </p>
                     <div
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
-                        alignItems: "center",
+                        marginTop: "10px",
                       }}
                     >
-                    <button
-                      style={{
-                        marginBottom:"15px",
-                        marginLeft:"20px",
-                        marginRight:"20px",
-
-                        padding: "10px",
-                        backgroundColor: favorites.includes(place._id)
-                          ? "#dc3545"
-                          : "#FFD700",
-                        color: "#ffffff",
-                        border: "none",
-                        borderRadius: "50%",
-                        width: "40px",
-                        height: "40px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                        transition: "background-color 0.3s",
-                      }}
-                      onClick={() =>
-                        showFavorites
-                          ? removeFromFavorites(place)
-                          : addToFavorites(place)
-                      }
-                    >
-                        <Heart
-                          size={20}
-                          fill={
-                            favorites.includes(place._id) ? "#ffffff" : "none"
-                          }
-                          color={
-                            favorites.includes(place._id) ? "#ffffff" : "#ffffff"
-                          }
-                        />
-                      {showFavorites ? " ❤️ " : " "}
-                    </button>
-                    <button
-                      style={{
-                        marginBottom:"15px",
-                        marginLeft:"20px",
-                        marginRight:"20px",
-                             padding: "10px 20px",
+                      <button
+                        style={{
+                          padding: "10px",
+                          backgroundColor: showFavorites ? "#dc3545" : "#FFD700",
+                          color: "#ffffff",
+                          border: "none",
+                          borderRadius: "5px",
+                          cursor: "pointer",
+                          flexGrow: 1,
+                          marginRight: "10px",
+                          transition: "background-color 0.3s",
+                        }}
+                        onClick={() =>
+                          showFavorites
+                            ? removeFromFavorites(place)
+                            : addToFavorites(place)
+                        }
+                      >
+                        {showFavorites ? "إزالة من المفضلة" : "أضف للمفضلة"}
+                      </button>
+                      <button
+                        style={{
+                          padding: "10px",
                           backgroundColor: "#115173",
                           color: "#ffffff",
                           border: "none",
                           borderRadius: "5px",
                           cursor: "pointer",
+                          flexGrow: 1,
                           transition: "background-color 0.3s",
-                      }}
-                      onClick={() => handleDetails(place)}
-                    >
-                      المزيد
-                    </button>
+                        }}
+                        onClick={() => handleDetails(place)}
+                      >
+                        المزيد
+                      </button>
+                    </div>
                   </div>
-                </div>
               ))
           ) : (
             <p
